@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#060b12">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Aviator Analyzer">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Aviator Predictor Robot</title>
+<style>
+:root{--bg:#060b12;--panel:#0d1b27;--panel2:#102433;--green:#00e695;--red:#ff244b;--muted:#9cb0c0;--line:#233746}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#142332 0,#060b12 55%);color:#f5f8fb;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:env(safe-area-inset-top) 15px calc(24px + env(safe-area-inset-bottom));}
+main{max-width:560px;margin:auto}.brand{padding:22px 5px 16px}.plane{font-size:25px;color:var(--red)}h1{margin:4px 0 2px;font-size:25px;letter-spacing:1px}.accent{color:var(--red)}.sub{font-size:11px;color:var(--muted);letter-spacing:1.5px}
+.card{background:linear-gradient(145deg,#102332,#0a1621);border:1px solid #1c3444;border-radius:17px;padding:16px;margin:12px 0;box-shadow:0 8px 24px #0003}
+.notice{border-left:3px solid var(--green)}.eyebrow{font-size:12px;font-weight:800;letter-spacing:.8px;color:var(--green)}p{font-size:13px;line-height:1.5;color:#d7e1e8;margin:8px 0 0}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.stat{text-align:center;padding:15px 5px;background:#0d1b27;border:1px solid var(--line);border-radius:13px}.value{font-size:20px;font-weight:800;color:var(--green)}.label{font-size:11px;color:var(--muted);margin-top:5px}
+h2{font-size:14px;letter-spacing:.6px;margin:0 0 12px}.row{display:flex;gap:9px;align-items:center}input{width:100%;min-width:0;background:#06101a;border:1px solid #294353;border-radius:10px;color:white;padding:13px;font-size:16px;outline:none}input:focus{border-color:var(--green)}button{border:0;border-radius:11px;font-size:13px;font-weight:800;padding:13px 15px;cursor:pointer}button:active{opacity:.8}.primary{background:var(--green);color:#03110d;width:100%;margin-top:10px}.secondary{background:#244154;color:white}.danger{background:#461827;color:#ff9bad}.result{padding:10px 0;border-bottom:1px solid #203443;display:flex;justify-content:space-between;align-items:center;font-weight:700}.result:last-child{border-bottom:0}.green{color:var(--green)}.red{color:var(--red)}.muted{color:var(--muted)}.tiny{font-size:11px;line-height:1.5;color:var(--muted)}.foot{text-align:center;padding:15px 5px 5px;font-size:11px;color:var(--muted)}.toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px}.empty{text-align:center;color:var(--muted);font-size:13px;padding:14px 0}
+</style>
+</head>
+<body><main>
+<header class="brand"><div class="plane">✈</div><h1>AVIATOR <span class="accent">PREDICTOR ROBOT</span></h1><div class="sub">ROUND HISTORY & STATISTICS</div></header>
+<section class="card notice"><div class="eyebrow">ANALYSIS MODE</div><p>No app can reliably know the next crash multiplier. Add completed rounds to review historical results. Past results do not predict the next round.</p></section>
+<section class="stats">
+<div class="stat"><div class="value" id="count">0</div><div class="label">ROUNDS SAVED</div></div>
+<div class="stat"><div class="value" id="avg">—</div><div class="label">AVERAGE</div></div>
+<div class="stat"><div class="value red" id="low">—</div><div class="label">BELOW 2x</div></div>
+</section>
+<section class="card"><h2>ADD COMPLETED ROUND</h2><div class="row"><input id="multiplier" type="number" min="1" step="0.01" placeholder="Multiplier, e.g. 1.42" inputmode="decimal"></div><button class="primary" id="add">ADD ROUND</button></section>
+<section class="card"><h2>DEMO THRESHOLD CHECK</h2><p>Checks saved history against a threshold. This is retrospective only, not a forecast.</p><div class="row" style="margin-top:12px"><input id="threshold" type="number" min="1" step="0.01" value="2.00" inputmode="decimal"><button class="secondary" id="check">CHECK</button></div><p id="status" aria-live="polite">Add rounds to begin.</p></section>
+<section class="card"><div class="toolbar"><h2 style="margin:0">RECENT RESULTS</h2><button class="danger" id="clear">CLEAR</button></div><div id="history"></div></section>
+<section class="card"><h2>INSTALL ON IPHONE</h2><p>Open this app's website in Safari, tap the Share button, then choose <b>Add to Home Screen</b>. For installability, the files must be hosted on an HTTPS website.</p></section>
+<div class="foot">Responsible play • This is a historical analysis tool, not a guarantee. No live-game connection or betting automation.</div>
+</main>
+<script>
+const KEY='aviator-analyzer-rounds-v1';
+let rounds=[];try{rounds=JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){rounds=[]}
+const $=id=>document.getElementById(id);
+function save(){localStorage.setItem(KEY,JSON.stringify(rounds));render()}
+function render(){
+ $('count').textContent=rounds.length;
+ if(!rounds.length){$('avg').textContent='—';$('low').textContent='—';$('history').innerHTML='<div class="empty">No rounds saved yet. Add a completed multiplier above.</div>';return}
+ $('avg').textContent=(rounds.reduce((a,b)=>a+b,0)/rounds.length).toFixed(2)+'x';
+ $('low').textContent=(100*rounds.filter(x=>x<2).length/rounds.length).toFixed(1)+'%';
+ $('history').innerHTML=rounds.slice(0,30).map((x,i)=>`<div class="result"><span class="muted">#${rounds.length-i}</span><span class="${x>=2?'green':'red'}">${x.toFixed(2)}x</span></div>`).join('');
+}
+$('add').addEventListener('click',()=>{let v=Number($('multiplier').value);if(!Number.isFinite(v)||v<1||v>100000){$('status').textContent='Enter a valid multiplier of 1.00x or higher.';return}rounds.unshift(v);rounds=rounds.slice(0,500);$('multiplier').value='';save()});
+$('multiplier').addEventListener('keydown',e=>{if(e.key==='Enter')$('add').click()});
+$('check').addEventListener('click',()=>{let t=Number($('threshold').value);if(!rounds.length||!Number.isFinite(t)||t<1){$('status').textContent='Add at least one round and enter a threshold of 1.00x or higher.';return}let hit=rounds.filter(x=>x>=t).length;$('status').textContent=`${hit} of ${rounds.length} historical rounds (${(100*hit/rounds.length).toFixed(1)}%) were at or above ${t.toFixed(2)}x. This does not predict the next round.`});
+$('clear').addEventListener('click',()=>{if(confirm('Delete all saved round history from this device?')){rounds=[];save();$('status').textContent='History cleared.'}});
+render();
+if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('./sw.js').catch(()=>{});
+</script>
+</body></html>
